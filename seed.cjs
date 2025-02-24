@@ -27,6 +27,7 @@ const createTables = async () => {
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         date DATE NOT NULL,
         party_count INTEGER NOT NULL,
+        table_number INTEGER NOT NULL,
         restaurant_id UUID REFERENCES restaurant(id) ON DELETE CASCADE,
         customer_id UUID REFERENCES customer(id) ON DELETE CASCADE
       );
@@ -36,9 +37,8 @@ const createTables = async () => {
     await client.query(`
       CREATE TABLE IF NOT EXISTS restaurant_table (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        table_number INTEGER NOT NULL CHECK (table_number BETWEEN 1 AND 30),
-        is_available BOOLEAN DEFAULT true,
-        reservation_id UUID REFERENCES reservation(id) ON DELETE SET NULL
+        table_number INTEGER NOT NULL,
+        restaurant_id UUID REFERENCES restaurant(id) ON DELETE CASCADE
       );
     `);
     console.log("Table created [RESTAURANT_TABLE] successfully....✅");
@@ -64,6 +64,14 @@ const clearTables = async () => {
   await client.query(`DELETE FROM restaurant`);
   await client.query(`DELETE FROM customer`);
   await client.query(`DELETE FROM reservation`);
+  await client.query(`DELETE FROM restaurant_table`);
+};
+
+const dropTables = async () => {
+  await client.query(`DROP TABLE reservation`);
+  await client.query(`DROP TABLE customer`);
+  await client.query(`DROP TABLE restaurant_table`);
+  await client.query(`DROP TABLE restaurant`);
 };
 
 const findRestaurant = async (restaurantName) => {
@@ -74,34 +82,63 @@ const findRestaurant = async (restaurantName) => {
   ).rows;
 };
 
-const findReservation = async (restaurantId, date) => {
+const findReservation = async (restaurantId, date, tableNumber) => {
   return (
     await client.query(
-      `SELECT * FROM reservation WHERE restaurant_id = $1 AND date = $2`,
-      [restaurantId, date]
+      `SELECT * FROM reservation WHERE restaurant_id = $1 AND date = $2 AND table_number = $3`,
+      [restaurantId, date, tableNumber]
     )
   ).rows;
 };
 
-const createReservation = async ( customerName, restaurantName, date, partyCount) => {
+const getTables = async (restaurantId) => {
+  return (
+    await client.query(
+      `SELECT * FROM restaurant_table WHERE restaurant_id = $1`,
+      [restaurantId]
+    )
+  ).rows.map((tableObj) => tableObj.table_number);
+};
+
+const createReservation = async (
+  customerName,
+  restaurantName,
+  date,
+  partyCount
+) => {
   // STEP 1: check if the restaurant exist; else log error
-  
+
   const restaurants = await findRestaurant(restaurantName);
   if (restaurants.length === 0) {
-    console.error(`Error: Unable to create reservation for '${customerName}'. Reason: restaurant: '${restaurantName}' does not exist`);
+    console.error(
+      `Error: Unable to create reservation for '${customerName}'. Reason: restaurant: '${restaurantName}' does not exist`
+    );
     return null;
   }
 
   let restaurantId = restaurants[0].id;
-  
-  // STEP 2: check if the restaurant is reserved for the given date; else create reservation
-  const reservations = await findReservation(restaurantId, date);
-  if (reservations.length !== 0) {
-    console.log(`Sorry ${customerName}, the date: ${date} is reserved on restaurant: ${restaurantName}`);
-  } else {
+
+  // GET THE LIST OF tables of the restaurant
+  const tableNumberList = await getTables(restaurantId);
+
+  for (let i = 0; i < tableNumberList.length; i++) {
+    // STEP 2: check if the restaurant is reserved for the given date; else create reservation
+    const reservations = await findReservation(
+      restaurantId,
+      date,
+      tableNumberList[i]
+    );
+    if (reservations.length !== 0) {
+      continue;
+    }
+
     const customerId = await addCustomer(customerName);
-    return await addReservation(date, partyCount, customerId, restaurantId);
+    return await addReservation(date, partyCount, customerId, restaurantId, tableNumberList[i]);
   }
+
+  console.log(
+    `Sorry ${customerName}, no tables available for date: ${date} on restaurant: ${restaurantName}`
+  );
 };
 
 const seedAsync = async () => {
@@ -111,37 +148,52 @@ const seedAsync = async () => {
     console.log("Connecting to the database up and running....✅");
     await createTables();
 
-    await addRestaurant("Grand Mexican Tacos");
+    const restaurantId = await addRestaurant("Grand Mexican Tacos");
+    await addRestaurantTable(1, restaurantId);
+    await addRestaurantTable(2, restaurantId);
+    await addRestaurantTable(3, restaurantId);
 
 
-    // TEST: peter and sandy should have reservations
-    await createReservation("Peter Parker", "Grand Mexican Tacos", "2025-02-28", 3);
-    await createReservation("Sandy Jason", "Grand Mexican Tacos", "2025-03-01", 2);
-    
-    // TEST: laura and john should not be able to reserve.
-    await createReservation("Laura Bobberson", "Grand Mexican Tacos", "2025-02-28", 5);
-    await createReservation("John Wilson", "Grand Mexican Tacos", "2025-03-01", 6);
+    // TEST 1: Perter Parker, Laura Bobberson, and John Wilson should be able to reserve tables:
+    //         Bob Wilmenr, however, won't be able to reserve on the same date as there is no more tables available
+    //         Clare Rodriguez is able to reserve tables on a different date.
 
-
-    // TEST: Henry is unable to make reservation on a restaurant that does not exist
-    await createReservation("Henry Wilmerson", "Fresh Italian Pizzeria NYC", "2025-03-01", 1);
-
-    
-
-    const result = await showAllReservations();
-
-    console.log(
-      result.rows.map((reserv) => {
-        return {
-          customerName: reserv.customer_name,
-          restaurantName: reserv.restaurant_name,
-          date: reserv.date.toISOString().split("T")[0],
-          partySize: reserv.party_count,
-        };
-      })
+    await createReservation(
+      "Peter Parker",
+      "Grand Mexican Tacos",
+      "2025-02-28",
+      3
     );
 
-    await clearTables();
+    await createReservation(
+      "Laura Bobberson",
+      "Grand Mexican Tacos",
+      "2025-02-28",
+      5
+    );
+
+    await createReservation(
+      "John Wilson",
+      "Grand Mexican Tacos",
+      "2025-02-28",
+      2
+    );
+
+    await createReservation(
+      "Bob Wilmer",
+      "Grand Mexican Tacos",
+      "2025-02-28",
+      2
+    );
+
+    await createReservation(
+      "Clare Rodriguez",
+      "Grand Mexican Tacos",
+      "2025-03-01",
+      2
+    );
+
+    await dropTables();
   } catch (error) {
     console.error("Error in seeding process:", error);
   } finally {
@@ -150,6 +202,6 @@ const seedAsync = async () => {
   }
 };
 
-// seedAsync();
+seedAsync();
 
 module.exports = { createReservation };
