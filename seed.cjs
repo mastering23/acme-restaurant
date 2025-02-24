@@ -89,7 +89,7 @@ const createReservation = async ( customerName, restaurantName, date, partyCount
   const restaurants = await findRestaurant(restaurantName);
   if (restaurants.length === 0) {
     console.error(`Error: Unable to create reservation for '${customerName}'. Reason: restaurant: '${restaurantName}' does not exist`);
-    return;
+    return null;
   }
 
   let restaurantId = restaurants[0].id;
@@ -100,7 +100,7 @@ const createReservation = async ( customerName, restaurantName, date, partyCount
     console.log(`Sorry ${customerName}, the date: ${date} is reserved on restaurant: ${restaurantName}`);
   } else {
     const customerId = await addCustomer(customerName);
-    await addReservation(date, partyCount, customerId, restaurantId);
+    return await addReservation(date, partyCount, customerId, restaurantId);
   }
 };
 
@@ -150,4 +150,6 @@ const seedAsync = async () => {
   }
 };
 
-seedAsync();
+// seedAsync();
+
+module.exports = { createReservation };
