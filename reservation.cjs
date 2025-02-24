@@ -7,10 +7,10 @@ const addReservation = async (resv_date,party_count,customer_id,restaurant_id) =
   [resv_date, party_count, customer_id, restaurant_id]
   );
   console.log(
-    `Reservation table: \n INSERT INTO reservation : \n
+    `Reservation table : INSERT INTO reservation :\n
      Id : [ ${customer_id} ]\n
-     Party of : [ ${party_count} ] \n 
-     Date : [ ${resv_date} ]\n
+     Party of : [ ${party_count} ]\n 
+     Date reserved : [ ${resv_date} ]\n
      successfully........ ✅`
   );
   }catch(err){
