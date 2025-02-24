@@ -26,12 +26,13 @@ The system ensures that no more than 30 tables are reserved at a time, providing
   date (DATE NOT NULL)
   party_count (INTEGER NOT NULL)
   restaurant_id (UUID REFERENCES restaurants table NOT NULL)
-  customer_id (UUID REFERENCES customer table NOT NULL)
+  customer_id (UUID REFERENCES customer_table NOT NULL)
   -----------------------
   restaurant_table
-  id(uuID)
-  table INTEGER NOT NULL , // 1 TO 30 TABLES
-  is_avaible  Boolean  
-  reservertation_id (UUID REFERENCES reservation table NOT NULL)
+   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        table_number INTEGER NOT NULL,
+        restaurant_id UUID REFERENCES restaurant(id) ON DELETE CASCADEable NOT NULL
+        
   ```
-  
+  Example Result Restaurant_table
+![alt text](image-1.png)
