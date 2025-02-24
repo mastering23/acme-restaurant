@@ -1,4 +1,4 @@
-const client = require("./cliente.cjs");
+const client = require("./client.cjs");
 
 const createTables = async () => {
   try {
@@ -54,6 +54,7 @@ const seedAsync = async () => {
   await createTables();
 
   await client.end();
+
   console.log("database disconnected........❌");
 };
 
