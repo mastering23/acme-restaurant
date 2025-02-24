@@ -1,4 +1,8 @@
 const client = require("./client.cjs");
+const { addCustomer } = require("./customer.cjs");
+const { addReservation } = require("./reservation.cjs");
+const { addRestaurantTable } = require("./restaurant_table.cjs");
+const { addRestaurant } = require("./restaurant.cjs");
 
 const createTables = async () => {
   try {
@@ -38,24 +42,68 @@ const createTables = async () => {
       );
     `);
     console.log("Table created [RESTAURANT_TABLE] successfully....✅");
-
   } catch (error) {
     console.error("Error creating tables:", error);
   }
 };
 
+const showAllReservations = async () => {
+  return await client.query(`
+    SELECT 
+      customer.name AS customer_name, 
+      restaurant.name AS restaurant_name, 
+      reservation.date, 
+      reservation.party_count
+    FROM reservation
+    JOIN customer ON reservation.customer_id = customer.id
+    JOIN restaurant ON reservation.restaurant_id = restaurant.id;
+  `);
+};
+
+const clearTables = async () => {
+  await client.query(`DELETE FROM restaurant`);
+  await client.query(`DELETE FROM customer`);
+  await client.query(`DELETE FROM reservation`);
+};
+
+const createReservation = async(customerName, restaurantName, date, partyCount) => {
+  const restaurantId = await addRestaurant(restaurantName);
+  const customerId = await addCustomer(customerName);
+  await addReservation(date, partyCount, customerId, restaurantId);
+}
+
 const seedAsync = async () => {
- 
-  console.log("ESTABLISH connection with the database....✅");
+  try {
+    console.log("ESTABLISH connection with the database....✅");
+    await client.connect();
+    console.log("Connecting to the database up and running....✅");
+    await createTables();
 
-  await client.connect();
-  console.log("connecting to the database up and running....✅");
 
-  await createTables();
+    await createReservation('John Johnson', 'Acme Italian NYC', '2025-02-28', 5);
+    await createReservation('Laura Blake', 'Pizzeria Italiana', '2025-02-28', 8);
+    await createReservation('Peter Parker', 'Grand Mexican Tacos', '2025-02-28', 3);
 
-  await client.end();
+    const result = await showAllReservations();
+    
+    console.log(
+      result.rows.map((reserv) => {
+        return {
+          customerName: reserv.customer_name,
+          restaurantName: reserv.restaurant_name,
+          date: reserv.date.toISOString().split("T")[0],
+          partySize: reserv.party_count
+        };
+      })
+    );
 
-  console.log("database disconnected........❌");
+    await clearTables();
+  } catch (error) {
+    console.error("Error in seeding process:", error);
+  } finally {
+    await client.end();
+    console.log("Database disconnected........❌");
+  }
 };
 
 seedAsync();
