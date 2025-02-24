@@ -4,18 +4,20 @@ const addReservation = async (
   resv_date,
   party_count,
   customer_id,
-  restaurant_id
+  restaurant_id,
+  table_number
 ) => {
   try {
     const result = await client.query(
-      "INSERT INTO reservation (date, party_count, customer_id, restaurant_id) VALUES($1, $2, $3, $4) RETURNING id",
-      [resv_date, party_count, customer_id, restaurant_id]
+      "INSERT INTO reservation (date, party_count, customer_id, restaurant_id, table_number) VALUES($1, $2, $3, $4, $5) RETURNING id",
+      [resv_date, party_count, customer_id, restaurant_id, table_number]
     );
     console.log(
       `Reservation table : INSERT INTO reservation :\n
      Id : [ ${customer_id} ]\n
      Party of : [ ${party_count} ]\n 
      Date reserved : [ ${resv_date} ]\n
+     Table number : [ ${table_number} ]\n
      successfully........ ✅`
     );
     return result;

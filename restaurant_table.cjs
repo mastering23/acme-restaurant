@@ -1,16 +1,15 @@
 const client = require("./client.cjs");
 
-const addRestaurantTable = async () => {
+const addRestaurantTable = async (tableNumber, restaurantId) => {
   try {
     await client.query(
-      "INSERT INTO restaurant_table(table_number,is_avaible,reservation_id) VALUES($1, $2, $5)",
-      [table_number, is_avaible, reservation_id]
+      "INSERT INTO restaurant_table (table_number, restaurant_id) VALUES($1, $2)",
+      [tableNumber, restaurantId]
     );
     console.log(
       `Restaurant [ table ]  table: INTO Restaurant table \n
-    Table number :[ ${table_number} ]\n
-    AVaible : [ ${is_avaible} ]\n
-    Reservation ID : [ ${reservation_id} ]\n    
+    Table number :[ ${tableNumber} ]\n
+    Restaurant ID : [ ${restaurantId} ]\n    
     successfully........ ✅`
     );
   } catch (err) {
