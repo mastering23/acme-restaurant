@@ -7,7 +7,7 @@ await client.query('INSERT INTO customer (name,reservation_id) VALUES($1, $2)',
 [name, reservation_id]
 );
 console.log(
-  `Employee table: \n INSERT INTO Customer [ ${name} ] successfully........ ✅`
+  `Customer table: \n INSERT INTO Customer [ ${name} ] successfully........ ✅`
 );
 }catch(err){
   console.log("Error adding Customer : ⚠️", err);  
