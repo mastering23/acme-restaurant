@@ -1,37 +1,13 @@
-const client =require('./client.cjs');
+const client = require('./client.cjs');
 
+const addCustomer = async (name) => {
+  try {
+    const result = await client.query('INSERT INTO customer(name) VALUES($1) RETURNING id', [name]);
+    console.log(`Customer table: INSERT INTO Customer [ ${name} ] successfully........ ✅`);
+    return result.rows[0].id;
+  } catch (err) {
+    console.log("Error adding Customer : ⚠️", err);  
+  }
+};
 
-const addCustomer = async (name,reservation_id) =>{
-try{
-await client.query('INSERT INTO customer (name,reservation_id) VALUES($1, $2)',
-[name, reservation_id]
-);
-console.log(
-  `Customer table: \n INSERT INTO Customer [ ${name} ] successfully........ ✅`
-);
-}catch(err){
-  console.log("Error adding Customer : ⚠️", err);  
-}
-  
-}
-
-// const fetchAllCustomer = () =>{
-  
-// }
-
-// const updateCustomer = () =>{
-  
-// }
-
-
-// const deleteCustomer = () =>{
-  
-// }
-
-
-console.log("TESTING CUSTOMER");
-console.log("ESTABLISH connection with the database....✅");
-client.connect();
-console.log("connecting to the database up and running....✅");
-client.end();
-console.log("database disconnected........❌");
+module.exports = { addCustomer };
